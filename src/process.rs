@@ -1,17 +1,20 @@
-use winapi::shared::minwindef::{DWORD, FALSE, TRUE, LPCVOID, LPVOID};
-use winapi::um::winnt::{HANDLE, PROCESS_ALL_ACCESS};
-use utils::{WinResult, WinErrorKind, close_h};
-use snapshot::Snapshot;
-use std::mem::{zeroed, size_of};
-use winapi::um::tlhelp32::{PROCESSENTRY32W, Process32FirstW, Process32NextW, MODULEENTRY32W, Module32FirstW, Module32NextW};
-use winapi::um::handleapi::INVALID_HANDLE_VALUE;
-use winapi::um::processthreadsapi::OpenProcess;
-use module::Module;
-use winapi::um::memoryapi::{WriteProcessMemory, ReadProcessMemory};
+use std::mem::{size_of, zeroed};
 use std::ptr::null_mut;
 
-/// Represents a system process, posses a PID and an open [`HANDLE`]
+use winapi::shared::minwindef::{DWORD, FALSE, LPCVOID, LPVOID, TRUE};
+use winapi::um::handleapi::INVALID_HANDLE_VALUE;
+use winapi::um::memoryapi::{ReadProcessMemory, WriteProcessMemory};
+use winapi::um::processthreadsapi::OpenProcess;
+use winapi::um::tlhelp32::{Module32FirstW, Module32NextW, MODULEENTRY32W, Process32FirstW, Process32NextW, PROCESSENTRY32W};
+use winapi::um::winnt::{HANDLE, PROCESS_ALL_ACCESS};
+
+use module::Module;
+use snapshot::Snapshot;
+use utils::{close_h, WinErrorKind, WinResult, remove_nil_bytes};
+
+/// Represents a system process, posses a PID, name and an open [`HANDLE`]
 pub struct Process {
+    name: String,
     pid: DWORD,
     handle: HANDLE,
 }
@@ -34,12 +37,13 @@ impl Process {
                 snapshot.handle() != INVALID_HANDLE_VALUE &&
                 Process32FirstW(snapshot.handle(), &mut p_entry) != FALSE {
                 while {
-                    if let Ok(p_name) = String::from_utf16(&p_entry.szExeFile) {
+                    if let Ok(p_name) = remove_nil_bytes(&p_entry.szExeFile) {
                         if p_name.starts_with(name) {
                             let pid = p_entry.th32ProcessID;
                             // Desire all access despite *probably* only needing VM_READ and VM_WRITE
                             let h_proc = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);
                             return Ok(Process {
+                                name: p_name,
                                 pid,
                                 handle: h_proc,
                             });
@@ -71,8 +75,7 @@ impl Process {
                 snapshot.handle() != INVALID_HANDLE_VALUE &&
                 Module32FirstW(snapshot.handle(), &mut m_entry) != FALSE {
                 while {
-                    if let Ok(m_name) = String::from_utf16(&m_entry.szModule) {
-                        // Compare with starts_with() because `m_name` will have `256 - len` nil bytes ('\0`) @ end
+                    if let Ok(m_name) = remove_nil_bytes(&m_entry.szModule) {
                         if m_name.starts_with(name) {
                             return Ok(Module {
                                 name: m_name,
@@ -144,6 +147,10 @@ impl Process {
         }
     }
 
+    #[inline]
+    pub fn name(&self) -> &str {
+        &self.name
+    }
 
     #[inline]
     pub fn pid(&self) -> DWORD {

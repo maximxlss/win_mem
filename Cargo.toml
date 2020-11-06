@@ -1,7 +1,7 @@
 [package]
 name = "win_mem"
 authors = ["nevalackin <nevalackin@protonmail.com>"]
-version = "0.2.0"
+version = "0.2.1"
 description = "win_mem, a winapi wrapper for reading and writing to memory"
 repository = "https://github.com/nevalackin/win_mem"
 readme = "README.md"
