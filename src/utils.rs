@@ -1,6 +1,7 @@
-use winapi::um::winnt::{HANDLE, WCHAR};
-use winapi::um::handleapi::CloseHandle;
 use std::string::FromUtf16Error;
+
+use winapi::um::handleapi::{CloseHandle, INVALID_HANDLE_VALUE};
+use winapi::um::winnt::{HANDLE, WCHAR};
 
 pub type WinResult<T> = Result<T, WinErrorKind>;
 
@@ -14,11 +15,13 @@ pub enum WinErrorKind {
 
 /// For internal use only: safe wrapper for [`CloseHandle`]
 #[inline]
-pub(crate) fn close_h(handle: HANDLE) {
-    unsafe { CloseHandle(handle); }
+pub fn close_h(handle: HANDLE) {
+    if !handle.is_null() && handle != INVALID_HANDLE_VALUE {
+        unsafe { CloseHandle(handle); }
+    }
 }
 
-pub(crate) fn remove_nil_bytes<const C_STR_SIZE: usize>(c_style_str: &[WCHAR; C_STR_SIZE]) -> Result<String, FromUtf16Error> {
+pub fn remove_nil_bytes<const C_STR_SIZE: usize>(c_style_str: &[WCHAR; C_STR_SIZE]) -> Result<String, FromUtf16Error> {
     for i in 0..c_style_str.len() {
         if c_style_str[i] == 0 {
             return String::from_utf16(&c_style_str[..i]);

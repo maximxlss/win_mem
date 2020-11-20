@@ -1,11 +1,16 @@
 [package]
 name = "win_mem"
 authors = ["nevalackin <nevalackin@protonmail.com>"]
-version = "0.2.1"
+version = "0.2.2"
 description = "win_mem, a winapi wrapper for reading and writing to memory"
 repository = "https://github.com/nevalackin/win_mem"
 readme = "README.md"
 license = "Apache-2.0"
 
+[package.metadata.docs.rs]
+default-target = "x86_64-pc-windows-msvc"
+
+targets = []
+
 [dependencies]
-winapi = { version = "0.3.9", features = ["tlhelp32", "memoryapi", "winnt", "minwindef", "basetsd", "handleapi", "processthreadsapi"] }
+winapi = { version = "0.3.9", features = ["tlhelp32", "memoryapi", "handleapi", "processthreadsapi", "winnt", "minwindef", "basetsd", "std"] }
