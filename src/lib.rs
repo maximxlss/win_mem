@@ -1,5 +1,3 @@
-#![feature(min_const_generics)]
-
 extern crate winapi;
 
 pub mod snapshot;
